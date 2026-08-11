@@ -1,6 +1,16 @@
 service: day13-observability-lab
 window: 28d
+
+# Ngưỡng được đặt từ baseline đo thật (10 request, 2026-08-11), không phải số tự nghĩ:
+#   cost_usd    mean 0.0020  p95 0.0027
+#   tokens_out  mean 127     p95 173
+#   tokens_in   mean 37      p95 50
+#   quality     mean 0.87    min 0.80
+# Quy tắc: objective ≈ 2x p95 quan sát được, đủ headroom để không báo động giả
+# nhưng vẫn bắt được hiện tượng nhảy bậc.
+
 slis:
+  # --- SLO hạ tầng (chung cho mọi service) ---
   latency_p95_ms:
     objective: 3000
     target: 99.5
@@ -11,6 +21,42 @@ slis:
   daily_cost_usd:
     objective: 2.5
     target: 100.0
+  traffic_rate_per_minute:
+    objective: 1
+    target: 99.0
+    note: Sàn liveness, không phải mục tiêu chất lượng hướng người dùng. Tồn tại để bịt vùng mù của error_rate_pct — khi không có request nào thì mẫu số bằng 0, error rate bằng 0 và mọi metric tỷ lệ đều trông khỏe mạnh dù service đã chết.
+
+  # --- SLO đặc thù LLM/agent ---
   quality_score_avg:
     objective: 0.75
     target: 95.0
+    note: Chất lượng câu trả lời — LLM có thể trả lời "thành công" (HTTP 200) mà nội dung vẫn vô dụng, nên error_rate không thay thế được SLI này.
+  cost_per_request_usd:
+    objective: 0.006
+    target: 99.0
+    note: Đơn giá mỗi request (~2x p95 quan sát 0.0027). Tách khỏi daily_cost_usd vì tăng traffic và tăng đơn giá là hai triệu chứng khác nhau, cách xử lý khác nhau.
+  output_tokens_p95:
+    objective: 400
+    target: 99.0
+    note: Chặn runaway generation (~2x p95 quan sát 173). Token output phình là nguyên nhân gốc chung của cả tăng chi phí lẫn tăng latency.
+  pii_in_output_count:
+    objective: 0
+    target: 100.0
+    note: Số lần PII xuất hiện trong câu trả lời của model. Objective tuyệt đối bằng 0 — đây là ngưỡng tuân thủ, không phải ngưỡng hiệu năng.
+
+# --- SLI đề xuất, CHƯA đo được ---
+# Hai SLI dưới đây là best practice cho RAG/agent nhưng hiện KHÔNG thể tính từ
+# data/logs.jsonl: `prompt_source` và `doc_count` mới chỉ được gửi sang Langfuse
+# trong app/agent.py (update_current_generation), chưa được ghi vào log JSON.
+# Cần instrument thêm trước khi bật thành SLO thật.
+planned_slis:
+  prompt_fallback_rate_pct:
+    objective: 1
+    target: 99.0
+    blocked_on: Ghi `prompt_source` và `prompt_fetch_error` vào event response_sent
+    note: Khi Langfuse lỗi, app/prompt_management.py âm thầm rơi về prompt local mặc định và vẫn trả HTTP 200. Prompt đổi mà không ai biết là sự cố LLM-ops điển hình, không hiện lên bất kỳ SLI nào ở trên.
+  retrieval_grounding_rate_pct:
+    objective: 90
+    target: 95.0
+    blocked_on: Ghi `doc_count` và cờ retrieval-miss vào event response_sent
+    note: app/mock_rag.py trả về câu "No domain document matched" khi không khớp corpus. Câu trả lời lúc đó không có căn cứ (nguy cơ hallucination) nhưng vẫn tính là thành công. Lưu ý doc_count hiện luôn >= 1 kể cả khi miss, nên cần cờ riêng chứ không dùng được doc_count đơn thuần.
