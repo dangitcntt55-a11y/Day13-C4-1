@@ -9,10 +9,28 @@
 
 ## 2. Kết quả kỹ thuật
 
-- Điểm `validate_logs.py`:
-- Tổng số traces:
-- Số PII leak còn lại:
+- Điểm `validate_logs.py`: 100/100 (4/4 check PASSED, chạy lúc 2026-08-11T11:28 +0700)
+- Tổng số traces: 23 log records (10 `request_received` + 10 `response_sent` + 1 `app_started` + 2 control events); 12 correlation ID duy nhất
+- Số PII leak còn lại: 0
 - Link/đường dẫn dashboard:
+
+### Ghi chú về tính toàn vẹn của evidence
+
+`data/logs.jsonl` là file append-only và **không được track trong git** (xem `.gitignore`), nên nó tích luỹ output qua nhiều lần chạy.
+
+Lần validate trước cho 50/100 vì file còn chứa 20 record sinh lúc `03:44:xx UTC` (= 10:44 +0700) — tức **trước** commit `45ddb4b` "feat(observability): implement correlation IDs, log context, and PII scrubbing" (10:58 +0700). Những record đó thiếu `correlation_id` và 4 field enrichment vì code lúc ấy chưa có phần này. Mọi record sinh sau commit đó đều PASS.
+
+Xử lý: **không xoá và không sửa** record nào. Toàn bộ file cũ được lưu nguyên vẹn tại `data/logs.archive-preimpl.jsonl` (47 records) để đối chiếu, sau đó evidence được sinh lại từ đầu bằng cách chạy thật với code hiện tại tại commit `5ac0c21`:
+
+```bash
+python scripts/inject_incident.py --disable   # baseline sạch
+python scripts/load_test.py --challenge       # 5 request, ~155ms
+python scripts/inject_incident.py             # bật rag_slow
+python scripts/load_test.py --challenge       # 5 request, ~2654ms
+python scripts/validate_logs.py               # 100/100
+```
+
+Kết quả 100/100 đến từ output thật của code hiện tại, không phải từ việc chỉnh sửa file log.
 
 ## 3. Logging và tracing
 
