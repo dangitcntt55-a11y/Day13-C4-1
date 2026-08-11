@@ -23,11 +23,13 @@
 
 ## 4. Prompt versioning
 
-- Prompt name:
-- Version/label baseline:
-- Version/label candidate:
-- Trace ID của mỗi version:
-- Bằng chứng đổi label hoặc rollback:
+- Prompt name: `day13-chat`
+- Version/label baseline: `local-v1` (Thay bằng Version thực tế trên Langfuse, VD: `v1`)
+- Version/label candidate: (Thay bằng Version thực tế trên Langfuse, VD: `v2`)
+- Trace ID của mỗi version: 
+  - Trace ID bản baseline: [ĐIỀN TRACE ID]
+  - Trace ID bản candidate: [ĐIỀN TRACE ID]
+- Bằng chứng đổi label hoặc rollback: [LƯU ẢNH VÀO THƯ MỤC `submission/evidence/` VÀ ĐIỀN LINK TẠI ĐÂY, VD: `evidence/rollback.png`]
 
 ## 5. Dashboard, SLO và alerts
 
