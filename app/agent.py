@@ -46,7 +46,7 @@ class LabAgent:
         langfuse_client.update_current_trace(
             user_id=hash_user_id(user_id),
             session_id=session_id,
-            tags=["lab", feature, self.model],
+            tags=["lab", "day13", "day13-chat", feature, self.model],
             metadata={
                 "prompt_name": prompt.name,
                 "prompt_label": prompt.label,
