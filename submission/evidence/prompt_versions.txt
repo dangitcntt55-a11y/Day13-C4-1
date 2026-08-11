@@ -1,84 +1,142 @@
-# Prompt Versioning Evidence - Day 13 Observability Lab
+# Prompt versioning — Day 13 Observability Lab
 
-## Overview
+Prompt name : day13-chat        (env LANGFUSE_PROMPT_NAME)
+Label mặc định của app: production   (env LANGFUSE_PROMPT_LABEL)
+Nguồn số liệu: Langfuse cloud, GET /api/public/v2/prompts/day13-chat?version=N
 
-Prompt versioning được quản lý qua Langfuse với script: `scripts/role2_setup.py`
+================================================================================
+1. TRẠNG THÁI THẬT TRÊN LANGFUSE
+================================================================================
 
-## Prompt Configuration
+10 version. Cặp đang hoạt động là #9 / #10.
 
-- **Prompt Name:** `day13-chat`
-- **Default Label:** `production` (configured via `LANGFUSE_PROMPT_LABEL` env var)
+  ver | labels                    | template                                        | tạo lúc (UTC)
+  ----|---------------------------|-------------------------------------------------|---------------
+   1  | (không)                   | Question={{message}} + "Answer in 2-4 sentences" | 03:45:15
+   2  | (không)                   | Question={{message}} + "concise answer first"    | 03:45:15
+   3  | (không)                   | Question={{message}}                             | 04:12:02
+   4  | (không)                   | User Question={{message}}                        | 04:12:04
+   5  | (không)                   | Question={{message}}                             | 05:14:50
+   6  | (không)                   | User Question={{message}}                        | 05:14:52
+   7  | (không)                   | Question={{message}}                             | 05:31:49
+   8  | (không)                   | User Question={{message}}                        | 05:31:51
+   9  | baseline, production      | Question={{message}}                             | 05:43:45
+  10  | candidate, latest         | User Question={{message}}                        | 05:43:48
 
-## Version 1 (Baseline/Production)
+Ghi chú trung thực: scripts/role2_setup.py được chạy 5 lần, mỗi lần create_prompt
+tạo thêm 2 version mới (Langfuse không ghi đè version cũ). Vì vậy có 10 version
+thay vì 2. Chỉ #9 và #10 mang label, các version 1-8 đã bị gỡ hết label.
 
-```python
-prompt_template_v1 = "Feature={{feature}}\nDocs={{docs}}\nQuestion={{message}}"
-labels = ["baseline", "production"]
-```
+Nội dung đầy đủ của cặp đang hoạt động:
 
-### Characteristics:
-- Uses "Question={{message}}" template
-- Labels: baseline, production
-- This is the stable/production version
+  version 9  (baseline + production)
+      Feature={{feature}}
+      Docs={{docs}}
+      Question={{message}}
 
-## Version 2 (Candidate)
+  version 10 (candidate + latest)
+      Feature={{feature}}
+      Docs={{docs}}
+      User Question={{message}}
 
-```python
-prompt_template_v2 = "Feature={{feature}}\nDocs={{docs}}\nUser Question={{message}}"
-labels = ["candidate"]
-```
+Khác biệt: "Question" -> "User Question". Đúng yêu cầu của
+docs/PROMPT_VERSIONING.md là "một thay đổi nhỏ về format"; bài lab không chấm
+prompt nào hay hơn, chỉ chấm khả năng truy xuất version và rollback.
 
-### Characteristics:
-- Uses "User Question={{message}}" template (slightly modified)
-- Labels: candidate
-- This is the experimental/candidate version for testing
+================================================================================
+2. HAI TRACE CHỨNG MINH HAI VERSION KHÁC NHAU
+================================================================================
 
-## How to Create and Test Prompt Versions
+Cùng một input:
+  feature  = monitoring
+  message  = "Explain why metrics traces and logs work together"
+Chỉ khác LANGFUSE_PROMPT_LABEL khi khởi động API server.
 
-### Step 1: Run the setup script
-```bash
-python scripts/role2_setup.py
-```
-This creates both versions on Langfuse.
+  BASELINE                                    CANDIDATE
+  ------------------------------------------  ------------------------------------------
+  trace   99c0460f55cddd60fbb09cf0d8ee89a4    trace   5e8d2948327a583a0438525fc42608eb
+  corr_id req-cp2base3                        corr_id req-cp2cand2
+  session cp2-baseline-3                      session cp2-candidate-2
+  label   baseline                            label   candidate
+  version 9                                   version 10
+  source  langfuse                            source  langfuse
+  lúc     2026-08-11T06:57:14.275Z            lúc     2026-08-11T05:57:02.096Z
+  latency 0.151 s                             latency 0.151 s
 
-### Step 2: Test with baseline label
-1. Set `LANGFUSE_PROMPT_LABEL=baseline` in `.env`
-2. Restart the API server
-3. Send a test request
-4. Record the Trace ID from Langfuse UI
+Cách chạy lại (bắt buộc phải restart server — resolve_prompt đọc os.getenv trong
+process của server, đổi env ở process khác không có tác dụng):
 
-### Step 3: Test with candidate label
-1. Set `LANGFUSE_PROMPT_LABEL=candidate` in `.env`
-2. Restart the API server
-3. Send the same test request
-4. Record the Trace ID from Langfuse UI
+  LANGFUSE_PROMPT_LABEL=baseline  uvicorn app.main:app --host 127.0.0.1 --port 8000
+  curl -X POST localhost:8000/chat -H 'x-request-id: req-cp2base3' \
+       -H 'content-type: application/json' \
+       -d '{"user_id":"cp2-prompt-ab","session_id":"cp2-baseline-3","feature":"monitoring",
+            "message":"Explain why metrics traces and logs work together"}'
 
-### Step 4: Change label (Promotion)
-1. Go to Langfuse UI → Prompts → `day13-chat`
-2. Move label "production" from Version 1 to Version 2
-3. Take a screenshot as evidence
+  # rồi lặp lại với LANGFUSE_PROMPT_LABEL=candidate
 
-### Step 5: Rollback label
-1. Go to Langfuse UI → Prompts → `day13-chat`
-2. Move label "production" back to Version 1
-3. Take a screenshot as evidence
+Lưu ý vận hành: request ĐẦU TIÊN sau khi khởi động process phải fetch prompt từ
+Langfuse (cache_ttl_seconds=60 còn rỗng) nên mất ~0.9-1.5s và có thể vượt
+fetch_timeout_seconds=2 rồi rơi về fallback. Vì vậy quy trình trên gửi 1 request
+warm-up trước, rồi mới lấy request thứ hai làm evidence.
 
-## Trace Linking
+================================================================================
+3. BẰNG CHỨNG ĐỔI LABEL / ROLLBACK
+================================================================================
 
-Each trace will have these metadata fields:
-- `prompt_name`: "day13-chat"
-- `prompt_label`: "baseline", "candidate", or "production"
-- `prompt_version`: Version number (e.g., "1", "2")
+Ảnh: label_rollback.png — danh sách version trên Langfuse UI sau khi rollback,
+     #2 giữ label "candidate", #1 được trả lại "production" + "baseline".
 
-## Evidence Checklist
+Trạng thái label hiện tại, kiểm chứng lại được bất kỳ lúc nào:
 
-- [ ] Trace ID for Version 1 (baseline) - record from Langfuse
-- [ ] Trace ID for Version 2 (candidate) - record from Langfuse
-- [ ] Screenshot of label change/promotion on Langfuse UI
-- [ ] Screenshot of rollback on Langfuse UI
+  GET /api/public/v2/prompts/day13-chat?version=9   -> labels: ["baseline","production"]
+  GET /api/public/v2/prompts/day13-chat?version=10  -> labels: ["candidate","latest"]
+  GET /api/public/v2/prompts/day13-chat?version=1   -> labels: []
+  GET /api/public/v2/prompts/day13-chat?version=2   -> labels: []
 
-## Code References
+Version 1 và 2 không còn label nào — chứng minh label "production" đã dịch chuyển
+khỏi chúng.
 
-- Setup script: `scripts/role2_setup.py`
-- Prompt resolution: `app/prompt_management.py`
-- Environment variables: `.env` (LANGFUSE_PROMPT_NAME, LANGFUSE_PROMPT_LABEL)
+HẠN CHẾ CỦA EVIDENCE NÀY (ghi rõ để không bị hiểu nhầm):
+  - Ảnh chụp cặp #1/#2 của vòng role2_setup.py đầu tiên, còn cặp đang hoạt động
+    là #9/#10.
+  - Ảnh chỉ ghi TRẠNG THÁI SAU rollback, chưa có ảnh trạng thái trước đó.
+
+Để có cặp trước/sau đầy đủ, trên Langfuse UI:
+  1. Prompts -> day13-chat -> chuyển label "production" từ v9 sang v10
+     -> chụp ảnh, đặt tên label_promotion.png
+  2. Gửi 1 request, xác nhận trace hiện prompt_version=10, prompt_label=production
+  3. Rollback label "production" về v9
+     -> chụp ảnh, đặt tên label_rollback_v9.png
+
+================================================================================
+4. PHÁT HIỆN: FALLBACK PROMPT KHÔNG ĐỂ LẠI DẤU VẾT TRONG LOG
+================================================================================
+
+Trace cf4d16e8037d62bd0b79c660ef81ee50 (session cp2-baseline, 05:54:15Z):
+    prompt_source  = local-fallback      <-- không phải "langfuse"
+    prompt_version = local-v1
+    HTTP status    = 200
+    latency        = 3.441 s
+
+Langfuse fetch vượt fetch_timeout_seconds=2 nên resolve_prompt âm thầm rơi về
+DEFAULT_PROMPT_TEMPLATE local (app/prompt_management.py:52-60), request vẫn
+thành công và không có cảnh báo nào.
+
+Nặng hơn: hai request req-warm-baseline (05:56:44) và req-cp2base2 (05:56:45)
+có log đầy đủ nhưng trace không bao giờ tới Langfuse do mạng đứt. Với hai request
+đó KHÔNG TỒN TẠI bản ghi nào cho biết chúng dùng prompt version nào, vì
+prompt_version/prompt_source chỉ được gửi sang trace, không ghi vào log.
+
+Fix đề xuất: ghi prompt_name, prompt_version, prompt_source, prompt_fetch_error
+vào event response_sent (app/main.py:68). Đây chính là blocked_on của
+planned_slis.prompt_fallback_rate_pct trong config/slo.yaml.
+
+================================================================================
+5. FILE LIÊN QUAN
+================================================================================
+
+  scripts/role2_setup.py        tạo prompt version trên Langfuse
+  app/prompt_management.py      resolve_prompt + fallback local
+  app/agent.py:46-74            gửi prompt metadata sang trace
+  docs/PROMPT_VERSIONING.md     yêu cầu của bài lab
+  .env                          LANGFUSE_PROMPT_NAME, LANGFUSE_PROMPT_LABEL

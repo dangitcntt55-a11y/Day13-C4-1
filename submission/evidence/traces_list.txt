@@ -1,51 +1,97 @@
-# Trace List - Day 13 Observability Lab
+# Danh sách trace trên Langfuse — Day 13 Observability Lab
 
-Generated from: data/logs.jsonl
-Total requests captured in logs: 20 unique correlation IDs
+Nguồn: Langfuse cloud, filter `tags:day13`, lấy qua GET /api/public/traces.
+Tổng: 38 trace (yêu cầu tối thiểu 10).
 
-## Trace Coverage by Feature
+Kiểm chứng lại:
+  GET https://cloud.langfuse.com/api/public/traces?tags=day13&limit=100
+  Basic auth = LANGFUSE_PUBLIC_KEY:LANGFUSE_SECRET_KEY
 
-### qa feature (12 requests)
-- req-a9f59622 - "What is your refund policy?"
-- req-53387bbc - "Explain why metrics traces and logs work together"
-- req-f825cbc5 - "Can I get help with policy and monitoring?"
-- req-ce0be8c9 - PII redaction test (phone)
-- req-c06a1f21 - PII redaction test (credit card)
-- req-5ab560e0 - Standard qa query
-- req-504e71d9 - Standard qa query
-- req-612b54da - Standard qa query
-- req-1508609a - Standard qa query
-- req-acf52ce3 - Standard qa query
+## Lần chạy sớm (prompt version 5) — 05:25 UTC  (10 trace)
 
-### summary feature (5 requests)
-- req-1508609a - "Summarize the monitoring policy"
-- Additional summary requests logged
+| timestamp (UTC) | trace ID | session | prompt v | label | source | latency (s) | cost (USD) | feature |
+|---|---|---|---|---|---|---:|---:|---|
+| 2026-08-11T05:25:09.225Z | `323fdbf2dcafddd09abc316ed5479f0f` | s01 | 5 | production | langfuse | 1.312 | 0.001743 | qa |
+| 2026-08-11T05:25:10.560Z | `6dcf9fefdbf2fa1448de8aa17316adcd` | s02 | 5 | production | langfuse | 0.152 | 0.002706 | qa |
+| 2026-08-11T05:25:10.716Z | `b35f49b6e8b3b9e68c8e4004f8210a35` | s03 | 5 | production | langfuse | 0.151 | 0.002457 | summary |
+| 2026-08-11T05:25:10.874Z | `0e185393294e238c4224d2e1758827c8` | s04 | 5 | production | langfuse | 0.152 | 0.001635 | qa |
+| 2026-08-11T05:25:11.038Z | `db5be7a2ade71a84ceb5e2156a215865` | s05 | 5 | production | langfuse | 0.153 | 0.002394 | qa |
+| 2026-08-11T05:25:11.198Z | `bc6f2fd52dd2cc92dd62a94afb61ca6a` | s06 | 5 | production | langfuse | 0.151 | 0.00249 | summary |
+| 2026-08-11T05:25:11.356Z | `e1e4e17f7263e49b2244995eca2bdc97` | s07 | 5 | production | langfuse | 0.151 | 0.002532 | qa |
+| 2026-08-11T05:25:11.517Z | `070be2dd1380b3207b56cc4f69fc65bb` | s08 | 5 | production | langfuse | 0.152 | 0.002691 | qa |
+| 2026-08-11T05:25:11.677Z | `7f2ae0fd3e23d7fbcc82b9d0b0f66db6` | s09 | 5 | production | langfuse | 0.151 | 0.001308 | qa |
+| 2026-08-11T05:25:11.833Z | `d362e74ef78bdfc097fe285ddb118763` | s10 | 5 | production | langfuse | 0.155 | 0.001539 | qa |
 
-### refund feature (3 requests - challenge)
-- Challenge queries captured in logs
-- Latency measurements included
+## Kiểm tra label thủ công — 05:45 UTC  (2 trace)
 
-## Statistics
+| timestamp (UTC) | trace ID | session | prompt v | label | source | latency (s) | cost (USD) | feature |
+|---|---|---|---|---|---|---:|---:|---|
+| 2026-08-11T05:45:05.756Z | `4087bca94cf096a2f8ff2e78a124663a` | test-production | 9 | production | langfuse | 1.464 | 0.002139 | qa |
+| 2026-08-11T05:45:09.249Z | `7fa18ac62726627363f5c06bce904c91` | test-candidate | 9 | production | langfuse | 0.153 | 0.001704 | qa |
 
-| Metric | Value |
-|--------|-------|
-| Total unique correlation IDs | 20 |
-| Requests with qa feature | 12 |
-| Requests with summary feature | 5 |
-| Requests with refund feature | 3 |
-| Latency measurements | 20 |
-| PII redaction tests passed | 3 (email, phone, credit card) |
+## CP2 prompt A/B — 05:54 và 05:57, 06:57 UTC  (6 trace)
 
-## Langfuse Trace IDs
+| timestamp (UTC) | trace ID | session | prompt v | label | source | latency (s) | cost (USD) | feature |
+|---|---|---|---|---|---|---:|---:|---|
+| 2026-08-11T05:54:15.107Z | `cf4d16e8037d62bd0b79c660ef81ee50` | cp2-baseline | local-v1 | baseline | local-fallback | 3.441 | 0.002607 | monitoring |
+| 2026-08-11T05:54:28.344Z | `26714b50a58ae1453f9d3966c099ae4d` | cp2-candidate | 10 | candidate | langfuse | 4.819 | 0.002763 | monitoring |
+| 2026-08-11T05:57:00.124Z | `5b11320bbf543a1ed7044ef5467ec3d0` | cp2-candidate-warmup | 10 | candidate | langfuse | 0.94 | 0.001608 | monitoring |
+| 2026-08-11T05:57:02.096Z | `5e8d2948327a583a0438525fc42608eb` | cp2-candidate-2 | 10 | candidate | langfuse | 0.151 | 0.001743 | monitoring |
+| 2026-08-11T06:57:11.645Z | `58bd03b4d2672b53cc68ff6a627027fd` | cp2-baseline-warm | 9 | baseline | langfuse | 1.103 | 0.002292 | monitoring |
+| 2026-08-11T06:57:14.275Z | `99c0460f55cddd60fbb09cf0d8ee89a4` | cp2-baseline-3 | 9 | baseline | langfuse | 0.151 | 0.001437 | monitoring |
 
-Note: Langfuse traces are tracked separately on the Langfuse platform.
-To retrieve trace IDs from Langfuse:
-1. Login to Langfuse dashboard
-2. Filter traces by prompt_name: "day13-chat"
-3. Export trace list with IDs
+## Baseline dashboard, 10 sample query — 05:54:40–43 UTC  (10 trace)
 
-## Evidence of Trace >10 requirement
+| timestamp (UTC) | trace ID | session | prompt v | label | source | latency (s) | cost (USD) | feature |
+|---|---|---|---|---|---|---:|---:|---|
+| 2026-08-11T05:54:40.739Z | `6e08306fb2518f1dc2d740fc7017c000` | s01 | 9 | production | langfuse | 0.898 | 0.001503 | qa |
+| 2026-08-11T05:54:41.640Z | `401bfc9e347af824b4459d198493b76c` | s02 | 9 | production | langfuse | 0.151 | 0.002241 | qa |
+| 2026-08-11T05:54:41.793Z | `82c53defb171a16a32ae3f30d231e2b3` | s03 | 9 | production | langfuse | 0.151 | 0.002697 | summary |
+| 2026-08-11T05:54:41.945Z | `2ff35d1a557d79b9dff5d48f749a4535` | s04 | 9 | production | langfuse | 0.15 | 0.00138 | qa |
+| 2026-08-11T05:54:42.097Z | `9ac76506a93c265719bbca983361eb94` | s05 | 9 | production | langfuse | 0.151 | 0.001299 | qa |
+| 2026-08-11T05:54:42.251Z | `ef87366f4d84ef4700e7cabbb5dc31ee` | s06 | 9 | production | langfuse | 0.15 | 0.00231 | summary |
+| 2026-08-11T05:54:42.403Z | `75684af7f62c1a64fbc0f2e757b6e481` | s07 | 9 | production | langfuse | 0.15 | 0.002397 | qa |
+| 2026-08-11T05:54:42.556Z | `b5bf7fd1fe697ee9c3886ae30f8362af` | s08 | 9 | production | langfuse | 0.151 | 0.002751 | qa |
+| 2026-08-11T05:54:42.708Z | `b7d837239d12e1be90b12cf2087befa2` | s09 | 9 | production | langfuse | 0.15 | 0.001323 | qa |
+| 2026-08-11T05:54:42.860Z | `0a85a1c640aa27fd1f73a61957384062` | s10 | 9 | production | langfuse | 0.15 | 0.002694 | qa |
 
-Total unique traces/correlations in logs.jsonl: 20
-Minimum required: 10
-Status: PASSED (200% of minimum)
+## Challenge, incident OFF — 05:54:52–53 UTC  (5 trace)
+
+| timestamp (UTC) | trace ID | session | prompt v | label | source | latency (s) | cost (USD) | feature |
+|---|---|---|---|---|---|---:|---:|---|
+| 2026-08-11T05:54:52.126Z | `170ac70ac2bc03aba2223f0c56c72f5e` | k3-challenge-s03 | 9 | production | langfuse | 0.914 | 0.002682 | refund |
+| 2026-08-11T05:54:53.043Z | `3be51ed621f648ac1569b79fd4400edc` | k3-challenge-s02 | 9 | production | langfuse | 0.15 | 0.001608 | refund |
+| 2026-08-11T05:54:53.195Z | `a19e5fc20f80867414b876ccade6b8d4` | k3-challenge-s05 | 9 | production | langfuse | 0.151 | 0.002397 | refund |
+| 2026-08-11T05:54:53.348Z | `618fb6e6e2dc6bedbde5ccb42771e7a2` | k3-challenge-s01 | 9 | production | langfuse | 0.15 | 0.002427 | refund |
+| 2026-08-11T05:54:53.500Z | `8bcd5a41bec18f80500c3e143a54754f` | k3-challenge-s04 | 9 | production | langfuse | 0.151 | 0.002097 | refund |
+
+## Challenge, incident ON (rag_slow) — 05:55:03–15 UTC  (5 trace)
+
+| timestamp (UTC) | trace ID | session | prompt v | label | source | latency (s) | cost (USD) | feature |
+|---|---|---|---|---|---|---:|---:|---|
+| 2026-08-11T05:55:03.655Z | `cbbe76e20d236ef4fa6bb86b7a5d0696` | k3-challenge-s01 | 9 | production | langfuse | 3.386 | 0.002697 | refund |
+| 2026-08-11T05:55:07.049Z | `fd84d047958f21b93155dc5e254cd122` | k3-challenge-s02 | 9 | production | langfuse | 2.651 | 0.002343 | refund |
+| 2026-08-11T05:55:09.703Z | `89d8c4fb6d08eeee30370e6e9af4d61c` | k3-challenge-s04 | 9 | production | langfuse | 2.653 | 0.001422 | refund |
+| 2026-08-11T05:55:12.360Z | `a04203514a69da85a7f4717383305e92` | k3-challenge-s03 | 9 | production | langfuse | 2.652 | 0.001662 | refund |
+| 2026-08-11T05:55:15.015Z | `b8a0c2c3e9cee47d3fe642f906107106` | k3-challenge-s05 | 9 | production | langfuse | 2.651 | 0.001347 | refund |
+
+## Trace được trích dẫn trong REPORT.md
+
+| Vai trò | Trace ID |
+|---|---|
+| Prompt baseline (version 9, label `baseline`) | `99c0460f55cddd60fbb09cf0d8ee89a4` |
+| Prompt candidate (version 10, label `candidate`) | `5e8d2948327a583a0438525fc42608eb` |
+| Challenge before, incident OFF (0.150s) | `618fb6e6e2dc6bedbde5ccb42771e7a2` |
+| Challenge after, incident ON (3.386s) | `cbbe76e20d236ef4fa6bb86b7a5d0696` |
+| Bằng chứng prompt fallback im lặng (`local-fallback`) | `cf4d16e8037d62bd0b79c660ef81ee50` |
+
+## Hai trace bị mất — ghi lại thay vì giấu
+
+Request `req-warm-baseline` (05:56:44) và `req-cp2base2` (05:56:45) có log đầy đủ trong
+data/logs.jsonl nhưng KHÔNG có trace nào trên Langfuse cho session `cp2-baseline-warmup`
+và `cp2-baseline-2`. Nguyên nhân: mạng tới cloud.langfuse.com đứt lúc đó
+(`Temporary failure in name resolution`), span chưa flush bị mất theo process.
+Cặp request cùng kịch bản chạy sau đó (`cp2-candidate-*`) có đủ trace.
+
+Đây là lý do dashboard contract lấy nguồn từ data/logs.jsonl chứ không từ Langfuse:
+log là nguồn chuẩn, trace là công cụ hỗ trợ.

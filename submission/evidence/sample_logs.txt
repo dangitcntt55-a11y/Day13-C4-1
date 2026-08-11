@@ -1,24 +1,60 @@
-=== Sample logs showing correlation ID and PII redaction ===
-=== Log 1: Request with email redaction ===
-{"service": "api", "payload": {"message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"}, "event": "request_received", "session_id": "s01", "user_id_hash": "2055254ee30a", "model": "claude-sonnet-4-5", "feature": "qa", "correlation_id": "req-a9f59622", "env": "dev", "level": "info", "ts": "2026-08-11T03:51:53.766623Z"}
-{"service": "api", "latency_ms": 150, "tokens_in": 36, "tokens_out": 150, "cost_usd": 0.002358, "quality_score": 0.9, "payload": {"answer_preview": "Starter answer. Teams should improve this output logic and add better quality ch..."}, "event": "response_sent", "session_id": "s01", "user_id_hash": "2055254ee30a", "model": "claude-sonnet-4-5", "feature": "qa", "correlation_id": "req-a9f59622", "env": "dev", "level": "info", "ts": "2026-08-11T03:51:53.918436Z"}
-{"service": "api", "payload": {"message_preview": "Explain why metrics traces and logs work together"}, "event": "request_received", "session_id": "s02", "user_id_hash": "95b6504a8bd6", "model": "claude-sonnet-4-5", "feature": "qa", "correlation_id": "req-53387bbc", "env": "dev", "level": "info", "ts": "2026-08-11T03:51:53.921791Z"}
+=== Log JSON có correlation ID và bằng chứng PII đã được redact ===
+Nguồn: data/logs.jsonl, lần chạy 2026-08-11T05:54 UTC (12:54 +0700).
 
-=== Log 2: Request with phone redaction ===
-{"service": "api", "payload": {"message_preview": "Here is my phone [REDACTED_PHONE_VN], what should be logged?"}, "event": "request_received", "session_id": "s05", "user_id_hash": "64f6ec689229", "model": "claude-sonnet-4-5", "feature": "qa", "correlation_id": "req-ce0be8c9", "env": "dev", "level": "info", "ts": "2026-08-11T03:51:54.391070Z"}
+--- 1. Correlation ID xuyên suốt một request ---
+Mỗi request sinh đúng 2 record dùng chung một correlation_id.
 
-=== Log 3: Request with credit card redaction ===
-{"service": "api", "payload": {"message_preview": "What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?"}, "event": "request_received", "session_id": "s09", "user_id_hash": "4d14d5d4f719", "model": "claude-sonnet-4-5", "feature": "qa", "correlation_id": "req-c06a1f21", "env": "dev", "level": "info", "ts": "2026-08-11T03:51:55.022411Z"}
+{"service": "api", "payload": {"message_preview": "What is your refund policy?"}, "event": "request_received", "env": "dev", "correlation_id": "req-b4fa75e9", "user_id_hash": "026c7a407135", "model": "claude-sonnet-4-5", "feature": "refund", "session_id": "k3-challenge-s01", "level": "info", "ts": "2026-08-11T05:54:53.347904Z"}
+{"service": "api", "latency_ms": 150, "tokens_in": 29, "tokens_out": 156, "cost_usd": 0.002427, "quality_score": 0.9, "payload": {"answer_preview": "Starter answer. Teams should improve this output logic and add better quality ch..."}, "event": "response_sent", "env": "dev", "correlation_id": "req-b4fa75e9", "user_id_hash": "026c7a407135", "model": "claude-sonnet-4-5", "feature": "refund", "session_id": "k3-challenge-s01", "level": "info", "ts": "2026-08-11T05:54:53.499169Z"}
 
-=== All unique correlation IDs ===
-  - req-1508609a
-  - req-504e71d9
-  - req-53387bbc
-  - req-5ab560e0
-  - req-612b54da
-  - req-a9f59622
-  - req-acf52ce3
-  - req-c06a1f21
-  - req-ce0be8c9
-  - req-f825cbc5
+--- 2. PII bị che trước khi ghi log ---
 
+Email
+  input gốc trong data/sample_queries.jsonl : ...student@vinuni.edu.vn...
+  ghi vào log                               : What is your refund policy? My email is [REDACTED_EMAIL]
+  {"service": "api", "payload": {"message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"}, "event": "request_received", "feature": "qa", "model": "claude-sonnet-4-5", "session_id": "s01", "user_id_hash": "2055254ee30a", "correlation_id": "req-3e005f9e", "env": "dev", "level": "info", "ts": "2026-08-11T05:54:40.695467Z"}
+
+Số điện thoại VN
+  input gốc trong data/sample_queries.jsonl : ...0987654321...
+  ghi vào log                               : Here is my phone [REDACTED_PHONE_VN], what should be logged?
+  {"service": "api", "payload": {"message_preview": "Here is my phone [REDACTED_PHONE_VN], what should be logged?"}, "event": "request_received", "feature": "qa", "model": "claude-sonnet-4-5", "session_id": "s05", "user_id_hash": "64f6ec689229", "correlation_id": "req-3dd4864b", "env": "dev", "level": "info", "ts": "2026-08-11T05:54:42.097162Z"}
+
+Số thẻ tín dụng (test)
+  input gốc trong data/sample_queries.jsonl : ...4111 1111 1111 1111...
+  ghi vào log                               : What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?
+  {"service": "api", "payload": {"message_preview": "What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?"}, "event": "request_received", "feature": "qa", "model": "claude-sonnet-4-5", "session_id": "s09", "user_id_hash": "4d14d5d4f719", "correlation_id": "req-1617b743", "env": "dev", "level": "info", "ts": "2026-08-11T05:54:42.708018Z"}
+
+--- 3. user_id không bao giờ vào log ---
+Log chỉ lưu user_id_hash = SHA-256(user_id)[:12] (app/pii.py:29).
+  u01 -> 2055254ee30a      k3-u01 -> 026c7a407135
+
+--- 4. Trace prompt A/B (mục 4 của REPORT.md) ---
+{"service": "api", "payload": {"message_preview": "Explain why metrics traces and logs work together"}, "event": "request_received", "correlation_id": "req-cp2base3", "user_id_hash": "eecc89c5c0eb", "model": "claude-sonnet-4-5", "session_id": "cp2-baseline-3", "feature": "monitoring", "env": "dev", "level": "info", "ts": "2026-08-11T06:57:14.273127Z"}
+{"service": "api", "latency_ms": 150, "tokens_in": 34, "tokens_out": 89, "cost_usd": 0.001437, "quality_score": 0.8, "payload": {"answer_preview": "Starter answer. Teams should improve this output logic and add better quality ch..."}, "event": "response_sent", "correlation_id": "req-cp2base3", "user_id_hash": "eecc89c5c0eb", "model": "claude-sonnet-4-5", "session_id": "cp2-baseline-3", "feature": "monitoring", "env": "dev", "level": "info", "ts": "2026-08-11T06:57:14.427931Z"}
+{"service": "api", "payload": {"message_preview": "Explain why metrics traces and logs work together"}, "event": "request_received", "feature": "monitoring", "model": "claude-sonnet-4-5", "user_id_hash": "eecc89c5c0eb", "session_id": "cp2-candidate-2", "env": "dev", "correlation_id": "req-cp2cand2", "level": "info", "ts": "2026-08-11T05:57:02.094945Z"}
+{"service": "api", "latency_ms": 150, "tokens_in": 36, "tokens_out": 109, "cost_usd": 0.001743, "quality_score": 0.8, "payload": {"answer_preview": "Starter answer. Teams should improve this output logic and add better quality ch..."}, "event": "response_sent", "feature": "monitoring", "model": "claude-sonnet-4-5", "user_id_hash": "eecc89c5c0eb", "session_id": "cp2-candidate-2", "env": "dev", "correlation_id": "req-cp2cand2", "level": "info", "ts": "2026-08-11T05:57:02.248255Z"}
+
+--- 5. Correlation ID của các lần chạy challenge ---
+Hai lần chạy: 04:27 UTC (lần đầu, trace không tới Langfuse) và 05:54-05:55 UTC
+(lần được trích dẫn trong REPORT.md). Trong mỗi lần, 5 request đầu chạy khi
+incident OFF, 5 request sau chạy khi rag_slow ON.
+  2026-08-11T04:27:37.395808Z  req-9a84fd6b  k3-challenge-s01  latency_ms=150
+  2026-08-11T04:27:37.550324Z  req-fe13edaa  k3-challenge-s02  latency_ms=150
+  2026-08-11T04:27:37.704117Z  req-49144a38  k3-challenge-s04  latency_ms=150
+  2026-08-11T04:27:37.858310Z  req-46404ff5  k3-challenge-s05  latency_ms=150
+  2026-08-11T04:27:38.013387Z  req-b0bc9d08  k3-challenge-s03  latency_ms=150
+  2026-08-11T04:27:46.893085Z  req-9e5e00db  k3-challenge-s01  latency_ms=2650
+  2026-08-11T04:27:49.547582Z  req-6803227e  k3-challenge-s02  latency_ms=2650
+  2026-08-11T04:27:52.201827Z  req-3b653608  k3-challenge-s04  latency_ms=2650
+  2026-08-11T04:27:56.814175Z  req-c2509aa3  k3-challenge-s05  latency_ms=2650
+  2026-08-11T04:27:59.467906Z  req-e94e5e28  k3-challenge-s03  latency_ms=2650
+  2026-08-11T05:54:53.041011Z  req-c3a1e8dc  k3-challenge-s03  latency_ms=913
+  2026-08-11T05:54:53.194181Z  req-cd40296a  k3-challenge-s02  latency_ms=150
+  2026-08-11T05:54:53.346768Z  req-7cc2f7ce  k3-challenge-s05  latency_ms=150
+  2026-08-11T05:54:53.499169Z  req-b4fa75e9  k3-challenge-s01  latency_ms=150
+  2026-08-11T05:54:53.651528Z  req-b95b1159  k3-challenge-s04  latency_ms=150
+  2026-08-11T05:55:07.042334Z  req-b3fb4b1f  k3-challenge-s01  latency_ms=3384
+  2026-08-11T05:55:09.701893Z  req-0ad4ee0a  k3-challenge-s02  latency_ms=2650
+  2026-08-11T05:55:12.357248Z  req-8036c6e0  k3-challenge-s04  latency_ms=2651
+  2026-08-11T05:55:15.013305Z  req-a6e334ed  k3-challenge-s03  latency_ms=2651
+  2026-08-11T05:55:17.667154Z  req-d7481539  k3-challenge-s05  latency_ms=2650

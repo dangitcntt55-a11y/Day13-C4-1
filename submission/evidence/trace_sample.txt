@@ -1,108 +1,123 @@
-# Trace Sample - Day 13 Observability Lab
+# Trace waterfall — Day 13 Observability Lab
 
-## Example Trace Waterfall
+Nguồn: Langfuse cloud, GET /api/public/traces/{id} và /api/public/observations?traceId={id}.
+Ảnh kèm theo: trace_waterfall.png (danh sách trace, filter tags:day13), trace_v1.png,
+trace_v2.png (panel Metadata của một trace).
 
-Correlation ID: req-a9f59622
-Feature: qa
-Model: claude-sonnet-4-5
+Mọi số dưới đây lấy trực tiếp từ API, không phải gõ tay lại từ ảnh.
 
-### Request Timeline
+================================================================================
+1. TRACE CHẬM — CHALLENGE, INCIDENT rag_slow ĐANG BẬT
+================================================================================
 
-```
-[0ms]  request_received
-         |
-         |  API receives request
-         |  - session_id: s01
-         |  - user_id_hash: 2055254ee30a
-         |  - feature: qa
-         |  - correlation_id: req-a9f59622
-         |
-[50ms]  message_processing
-         |
-         |  PII redaction applied
-         |  - Input scanned for PII
-         |  - Email detected and redacted: [REDACTED_EMAIL]
-         |
-[100ms] LLM call initiated
-         |
-         |  - model: claude-sonnet-4-5
-         |  - tokens_in: 36
-         |  - prompt_version: v1 (if applicable)
-         |
-[150ms] response_sent
-         |
-         |  Response delivered
-         |  - latency_ms: 150
-         |  - tokens_out: 150
-         |  - cost_usd: 0.002358
-         |  - quality_score: 0.9
-```
+Trace ID   : cbbe76e20d236ef4fa6bb86b7a5d0696
+Session    : k3-challenge-s01
+User       : 026c7a407135  (= SHA-256("k3-u01")[:12])
+Câu hỏi    : "What is your refund policy?"   (query_preview trong metadata)
+Tags       : claude-sonnet-4-5, day13, day13-chat, lab, refund
+Bắt đầu    : 2026-08-11T05:55:03.655Z
+Kết thúc   : 2026-08-11T05:55:07.041Z
+Latency    : 3.386 s
+Cost       : 0.002697 USD
 
-### Log Entries for This Trace
+Waterfall (đúng như Langfuse trả về):
 
-#### Entry 1: request_received
-```json
-{
-  "service": "api",
-  "payload": {
-    "message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"
-  },
-  "event": "request_received",
-  "session_id": "s01",
-  "user_id_hash": "2055254ee30a",
-  "model": "claude-sonnet-4-5",
-  "feature": "qa",
-  "correlation_id": "req-a9f59622",
-  "env": "dev",
-  "level": "info",
-  "ts": "2026-08-11T03:51:53.766623Z"
-}
-```
+  0.000s ┌─ GENERATION "run"  id=15e38037fc1451de  parent=None
+         │    model            : claude-sonnet-4-5
+         │    doc_count        : 1
+         │    prompt_name      : day13-chat
+         │    prompt_label     : production
+         │    prompt_version   : 9
+         │    prompt_source    : langfuse
+         │    prompt_fetch_error: null
+  3.386s └─ (hết trace)
 
-#### Entry 2: response_sent
-```json
-{
-  "service": "api",
-  "latency_ms": 150,
-  "tokens_in": 36,
-  "tokens_out": 150,
-  "cost_usd": 0.002358,
-  "quality_score": 0.9,
-  "payload": {
-    "answer_preview": "Starter answer. Teams should improve this output logic..."
-  },
-  "event": "response_sent",
-  "session_id": "s01",
-  "user_id_hash": "2055254ee30a",
-  "model": "claude-sonnet-4-5",
-  "feature": "qa",
-  "correlation_id": "req-a9f59622",
-  "env": "dev",
-  "level": "info",
-  "ts": "2026-08-11T03:51:53.918436Z"
-}
-```
+  GET /api/public/observations?traceId=cbbe76e20d236ef4fa6bb86b7a5d0696
+  → {"totalItems": 1}
 
-## Notable Span: PII Redaction
+================================================================================
+2. TRACE NHANH — CÙNG SESSION, CÙNG CÂU HỎI, INCIDENT TẮT
+================================================================================
 
-The input message contained an email address which was redacted before logging:
+Trace ID   : 618fb6e6e2dc6bedbde5ccb42771e7a2
+Session    : k3-challenge-s01     (giống trace trên)
+Bắt đầu    : 2026-08-11T05:54:53.348Z
+Kết thúc   : 2026-08-11T05:54:53.498Z
+Latency    : 0.150 s
+Cost       : 0.002427 USD
 
-**Original input:** "What is your refund policy? My email is user@example.com"
+  0.000s ┌─ GENERATION "run"
+         │    model            : claude-sonnet-4-5
+         │    doc_count        : 1
+         │    prompt_version   : 9        (giống hệt trace chậm)
+         │    prompt_label     : production
+         │    prompt_source    : langfuse
+  0.150s └─ (hết trace)
 
-**Logged value:** "What is your refund policy? My email is [REDACTED_EMAIL]"
+================================================================================
+3. ĐỌC HAI TRACE NÀY NHƯ THẾ NÀO
+================================================================================
 
-This demonstrates:
-1. PII is detected before logging
-2. Original PII never appears in logs.jsonl
-3. Redaction preserves context for debugging
+Bảng so sánh — mọi biến số giữ nguyên, chỉ thời gian đổi:
 
-## Metrics Extracted from Trace
+  trường            | nhanh (618fb6e6…) | chậm (cbbe76e2…)
+  ------------------|-------------------|------------------
+  latency           | 0.150 s           | 3.386 s     <-- ×22.6
+  doc_count         | 1                 | 1
+  prompt_version    | 9                 | 9
+  prompt_label      | production        | production
+  prompt_source     | langfuse          | langfuse
+  model             | claude-sonnet-4-5 | claude-sonnet-4-5
+  tokens_in         | 29                | 29
+  số observation    | 1                 | 1
 
-| Metric | Value |
-|--------|-------|
-| Total latency | 150ms |
-| Tokens in | 36 |
-| Tokens out | 150 |
-| Cost | $0.002358 |
-| Quality score | 0.9 |
-| PII items redacted | 1 (email) |
+Loại trừ được: prompt version, model, retrieval miss, kích thước input.
+Còn lại: một bước nào đó trong pipeline chậm thêm ~3.2s.
+
+GIỚI HẠN CỦA TRACE NÀY — ghi rõ thay vì bỏ qua:
+
+Trace chỉ có ĐÚNG MỘT observation. retrieve() chạy bên trong LabAgent.run mà chỉ
+`run` được bọc @observe (app/agent.py:29), nên retrieval KHÔNG có span riêng.
+Trace nói được "request này chậm" nhưng chưa nói được "chậm ở retrieval hay ở
+generation" — phải xuống log và code mới chốt được root cause.
+
+Đây là preventive measure số 1 trong REPORT.md: bọc retrieve() bằng span riêng.
+
+================================================================================
+4. NỐI TRACE VỀ LOG
+================================================================================
+
+Trace KHÔNG mang correlation_id (app/agent.py:46 chỉ gửi user_id, session_id,
+tags, metadata). Vì vậy phải nối bằng session_id + mốc thời gian:
+
+  trace cbbe76e2…  kết thúc 05:55:07.041Z  session k3-challenge-s01
+  log record       ghi lúc  05:55:07.042334Z  correlation_id=req-b3fb4b1f
+                                              session_id=k3-challenge-s01
+                                              latency_ms=3384
+
+  trace 618fb6e6…  kết thúc 05:54:53.498Z  session k3-challenge-s01
+  log record       ghi lúc  05:54:53.499169Z  correlation_id=req-b4fa75e9
+                                              latency_ms=150
+
+Cách nối này chỉ đúng khi mỗi session có một request đang chạy. Fix đề xuất:
+đưa correlation_id vào metadata của trace (preventive measure số 2).
+
+================================================================================
+5. MỘT TRACE ĐÁNG CHÚ Ý KHÁC — PROMPT FALLBACK IM LẶNG
+================================================================================
+
+Trace ID   : cf4d16e8037d62bd0b79c660ef81ee50
+Session    : cp2-baseline
+Latency    : 3.441 s
+prompt_source  : local-fallback      <-- KHÔNG phải "langfuse"
+prompt_version : local-v1
+
+Langfuse fetch vượt fetch_timeout_seconds=2, resolve_prompt rơi về template local
+(app/prompt_management.py:52) và request vẫn trả HTTP 200 bình thường.
+
+Sự kiện này KHÔNG xuất hiện trong log — prompt_source chỉ được gửi sang trace.
+Nếu trace cũng mất (xem traces_list.txt, mục "Hai trace bị mất") thì không còn
+bản ghi nào cho biết request đã dùng prompt nào.
+
+Đây là bằng chứng thực nghiệm cho planned_slis.prompt_fallback_rate_pct
+trong config/slo.yaml.

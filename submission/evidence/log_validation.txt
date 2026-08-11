@@ -1,8 +1,11 @@
+# Kết quả `python scripts/validate_logs.py`
+# Chạy tại repo root, 2026-08-11 (UTC), trên data/logs.jsonl append-only.
+
 --- Lab Verification Results ---
-Total log records analyzed: 20
+Total log records analyzed: 115
 Records with missing required fields: 0
 Records with missing enrichment (context): 0
-Unique correlation IDs found: 10
+Unique correlation IDs found: 53
 Potential PII leaks detected: 0
 
 --- Grading Scorecard (Estimates) ---
@@ -12,3 +15,6 @@ Potential PII leaks detected: 0
 + [PASSED] PII scrubbing
 
 Estimated Score: 100/100
+
+# Ghi chú: validate_logs.py dùng bộ regex PII riêng, KHÔNG import app/pii.py,
+# nên nó kiểm tra độc lập với chính bộ scrub của app.

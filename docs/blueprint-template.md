@@ -2,6 +2,8 @@
 
 Dùng khung này trước khi triển khai, sau đó chuyển kết quả cuối sang `submission/REPORT.md`.
 
+> Bản đã điền của nhóm: [observability-blueprint.md](observability-blueprint.md). File này giữ nguyên dạng template để dùng lại.
+
 ## Người dùng và luồng chính
 
 - Ai gửi request?
