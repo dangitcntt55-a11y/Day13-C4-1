@@ -31,7 +31,7 @@ Mỗi alert phải dựa trên triệu chứng người dùng hoặc SLO, không
      `jq -r 'select(.event=="request_failed") | "\(.correlation_id) \(.error_type) \(.payload.detail)"' data/logs.jsonl | tail -20`
   3. Kiểm tra lỗi tập trung ở một `feature`/`model` hay rải đều — nếu chỉ một nhánh thì nghi vấn dependency của nhánh đó, nếu rải đều thì nghi vấn thay đổi chung (deploy, config, credential hết hạn).
 - Mitigation tạm thời: rollback về version prompt/model gần nhất còn ổn định, bật fallback trả lời an toàn thay vì 500, và nếu lỗi đến từ một tool phụ thì tạm ngắt tool đó để giữ luồng chính hoạt động.
-- Owner: Trần Đình Đăng
+- Owner: Đặng Thái Nam Sơn
 
 ## Alert 3
 
@@ -46,7 +46,7 @@ Mỗi alert phải dựa trên triệu chứng người dùng hoặc SLO, không
      `jq -r 'select(.event=="response_sent") | "\(.tokens_in) \(.tokens_out)"' data/logs.jsonl | tail -20`
   3. Đối chiếu thời điểm chi phí tăng với lần đổi prompt version hoặc model — prompt dài hơn hoặc model đắt hơn đều làm `avg_cost_usd` nhảy bậc.
 - Mitigation tạm thời: rollback về prompt version ngắn hơn, đặt trần `max_tokens` cho output, hoặc hạ model xuống bậc rẻ hơn cho các feature không cần chất lượng cao nhất.
-- Owner: Chu Thành Dũng
+- Owner: Đặng Thái Nam Sơn
 
 ## Alert 4
 
@@ -62,7 +62,7 @@ Mỗi alert phải dựa trên triệu chứng người dùng hoặc SLO, không
      `jq -r 'select(.event=="response_sent") | "\(.feature) \(.quality_score)"' data/logs.jsonl | sort | uniq -c`
   3. Đọc `_heuristic_quality` trong `app/agent.py` để biết thành phần nào kéo điểm xuống: thiếu doc (-0.2), câu trả lời quá ngắn (-0.1), hoặc có `[REDACTED` trong answer (-0.2). Nếu nguyên nhân là `[REDACTED` thì xử lý theo Alert 8 trước.
 - Mitigation tạm thời: rollback prompt về version có điểm tốt hơn, và nếu điểm thấp do retrieval không khớp thì bổ sung document cho feature đó. Cảnh báo: `quality_score` là heuristic nội bộ, không phải đánh giá của con người — trước khi kết luận, hãy đọc vài `answer_preview` thật để xác nhận chất lượng đúng là có giảm chứ không phải heuristic bị lệch.
-- Owner: TODO_phân_công
+- Owner: Đặng Thái Nam Sơn
 
 ## Alert 5
 
@@ -77,7 +77,7 @@ Mỗi alert phải dựa trên triệu chứng người dùng hoặc SLO, không
      `ls -la data/logs.jsonl && tail -3 data/logs.jsonl`
   3. Nếu app sống mà không có request, kiểm tra tầng phía trước: process có bind đúng cổng không (`ss -ltnp | grep 8000`), client/load generator có đang chạy không.
 - Mitigation tạm thời: khởi động lại service, và xác nhận bằng một request thật (`scripts/load_test.py`) chứ không chỉ dựa vào `/health`. Nếu nguyên nhân là mất quyền ghi log thì service có thể vẫn phục vụ được nhưng đang chạy mù — ưu tiên khôi phục logging.
-- Owner: TODO_phân_công
+- Owner: Đặng Thái Nam Sơn
 
 ## Alert 6
 
@@ -93,7 +93,7 @@ Mỗi alert phải dựa trên triệu chứng người dùng hoặc SLO, không
   3. Kiểm tra `model` có bị đổi sang bậc đắt hơn không:
      `jq -r 'select(.event=="response_sent") | .model' data/logs.jsonl | uniq -c`
 - Mitigation tạm thời: nếu `tokens_in` phình thì cắt bớt số document đưa vào prompt; nếu `tokens_out` phình thì xử lý theo Alert 7; nếu do đổi model thì rollback về model cũ.
-- Owner: TODO_phân_công
+- Owner: Đặng Thái Nam Sơn
 
 ## Alert 7
 
@@ -109,7 +109,7 @@ Mỗi alert phải dựa trên triệu chứng người dùng hoặc SLO, không
   3. Kiểm tra tương quan với `latency_ms` và `cost_usd` để xác nhận đúng là một hiện tượng chứ không phải ba sự cố rời rạc:
      `jq -r 'select(.event=="response_sent") | "\(.tokens_out) \(.latency_ms) \(.cost_usd)"' data/logs.jsonl | tail -20`
 - Mitigation tạm thời: đặt trần `max_tokens` cho output, và thêm ràng buộc độ dài vào prompt. Lưu ý `_heuristic_quality` cộng điểm khi answer dài hơn 40 ký tự, nên siết quá tay có thể kéo `quality_score` xuống và làm Alert 4 bắn — chỉnh từ từ và theo dõi cả hai.
-- Owner: TODO_phân_công
+- Owner: Đặng Thái Nam Sơn
 
 ## Alert 8
 
@@ -124,43 +124,4 @@ Mỗi alert phải dựa trên triệu chứng người dùng hoặc SLO, không
   2. Lấy `correlation_id` ở bước 1, truy ngược `request_received` tương ứng để biết PII vào hệ thống từ đâu.
   3. Xác định loại PII từ hậu tố marker (`_EMAIL`, `_PHONE_VN`, `_CCCD`, `_CREDIT_CARD`, `_PASSPORT`) và đối chiếu với `PII_PATTERNS` trong `app/pii.py` để biết pattern nào đang khớp.
 - Mitigation tạm thời: thêm bước scrub cho response trước khi trả về client (hiện `scrub_event` trong `app/logging_config.py` chỉ làm sạch log, **không** làm sạch response body), và bổ sung chỉ dẫn vào prompt yêu cầu model không nhắc lại thông tin cá nhân. Kiểm tra thêm liệu PII có bị lưu ở nơi khác ngoài log không (trace Langfuse, cache).
-- Owner: TODO_phân_công
-
----
-
-# Alert đề xuất — chưa bật được
-
-Hai alert dưới đây chưa thể bắn với instrumentation hiện tại. Chúng được ghi ở đây để
-không bị quên, và để phần `planned_alerts` trong `config/alert_rules.yaml` có runbook
-tương ứng khi được bật.
-
-## Alert 9
-
-- Tên: `PromptFallbackRate`
-- Severity: critical
-- SLI/SLO liên quan: `prompt_fallback_rate_pct` — objective 1% (`config/slo.yaml`, mục `planned_slis`)
-- Trạng thái: **chưa bật** — cần ghi `prompt_source` và `prompt_fetch_error` vào event `response_sent`. Hiện hai trường này chỉ được gửi sang Langfuse trong `app/agent.py`, không có trong `data/logs.jsonl`.
-- Điều kiện và thời gian duy trì: tỷ lệ `prompt_source == "local-fallback"` > 1% trong 5 phút.
-- Ảnh hưởng tới người dùng: khi Langfuse không truy cập được, `resolve_prompt` trong `app/prompt_management.py` bắt mọi exception và âm thầm rơi về `DEFAULT_PROMPT_TEMPLATE`. Request vẫn trả HTTP 200, latency vẫn bình thường, chi phí vẫn bình thường — nhưng **model đang chạy một prompt khác với prompt nhóm đã kiểm thử**. Không một alert nào từ 1 đến 8 phát hiện được điều này. Đây chính là kịch bản mà prompt versioning sinh ra để bảo vệ, nên nó xứng đáng severity critical.
-- Ba bước kiểm tra đầu tiên (sau khi đã instrument):
-  1. Xác nhận tỷ lệ fallback và đọc `prompt_fetch_error` để biết Langfuse hỏng kiểu gì (timeout, auth, network).
-  2. Kiểm tra Langfuse có truy cập được từ chính máy chạy app không (`LANGFUSE_HOST` trong `.env`).
-  3. So sánh `quality_score` giữa nhóm fallback và nhóm dùng prompt managed để lượng hóa thiệt hại thực tế.
-- Mitigation tạm thời: pin prompt về bản local đã kiểm thử một cách tường minh thay vì để rơi vào fallback ngầm, và khôi phục kết nối Langfuse.
-- Owner: TODO_phân_công
-
-## Alert 10
-
-- Tên: `RetrievalGroundingMiss`
-- Severity: warning
-- SLI/SLO liên quan: `retrieval_grounding_rate_pct` — objective 90% (`config/slo.yaml`, mục `planned_slis`)
-- Trạng thái: **chưa bật** — cần thêm cờ `retrieval_miss` vào event `response_sent`. Lưu ý `doc_count` đơn thuần không dùng được: `retrieve()` trong `app/mock_rag.py` luôn trả về ít nhất một phần tử, kể cả khi không khớp corpus, nên `doc_count` luôn >= 1 và không phân biệt được hit với miss.
-- Điều kiện và thời gian duy trì: tỷ lệ retrieval miss > 10% trong 15 phút.
-- Ảnh hưởng tới người dùng: khi không khớp corpus, RAG trả về câu `"No domain document matched. Use general fallback answer."` và model buộc phải trả lời không có căn cứ — đúng điều kiện sinh ra hallucination. Request vẫn thành công. `quality_score` có bắt được một phần (mất 0.2 điểm khi không có doc), nhưng chỉ gián tiếp và bị trộn lẫn với các thành phần khác của heuristic.
-- Ba bước kiểm tra đầu tiên (sau khi đã instrument):
-  1. Xác định tỷ lệ miss theo `feature` để biết corpus nào thiếu.
-  2. Đọc các câu hỏi bị miss để phân biệt "corpus thiếu nội dung" với "câu hỏi nằm ngoài phạm vi sản phẩm".
-  3. Đối chiếu với `CORPUS` trong `app/mock_rag.py` — hiện chỉ có 3 chủ đề (refund, monitoring, policy), nên tỷ lệ miss cao có thể là kỳ vọng sai chứ không phải lỗi.
-- Mitigation tạm thời: bổ sung document cho các chủ đề bị miss nhiều, và cho model trả lời "không biết" một cách tường minh khi không có căn cứ thay vì bịa.
-- Owner: TODO_phân_công
-
+- Owner: Đặng Thái Nam Sơn

@@ -30,7 +30,7 @@ alerts:
     for: 5m
     min_sample: 20 requests trong cửa sổ
     type: symptom-based
-    owner: Trần Đình Đăng
+    owner: Đặng Thái Nam Sơn
     runbook: docs/alerts.md#alert-2
 
   - name: DailyCostBudgetBurn
@@ -40,7 +40,7 @@ alerts:
     for: 15m
     min_sample: không áp dụng (ngưỡng tuyệt đối theo ngân sách ngày)
     type: symptom-based
-    owner: Chu Thành Dũng
+    owner: Đặng Thái Nam Sơn
     runbook: docs/alerts.md#alert-3
 
   # --- Nhóm 2: SLO đặc thù LLM/agent ---
@@ -51,7 +51,7 @@ alerts:
     for: 10m
     min_sample: 20 responses trong cửa sổ
     type: symptom-based
-    owner: TODO_phân_công
+    owner: Đặng Thái Nam Sơn
     runbook: docs/alerts.md#alert-4
 
   - name: TrafficDropout
@@ -61,7 +61,7 @@ alerts:
     for: 10m
     min_sample: không áp dụng (chính sự vắng mặt của dữ liệu là tín hiệu)
     type: symptom-based
-    owner: TODO_phân_công
+    owner: Đặng Thái Nam Sơn
     runbook: docs/alerts.md#alert-5
 
   - name: CostPerRequestSpike
@@ -71,7 +71,7 @@ alerts:
     for: 10m
     min_sample: 20 responses trong cửa sổ
     type: symptom-based
-    owner: TODO_phân_công
+    owner: Đặng Thái Nam Sơn
     runbook: docs/alerts.md#alert-6
 
   - name: OutputTokenBloat
@@ -81,7 +81,7 @@ alerts:
     for: 10m
     min_sample: 20 responses trong cửa sổ
     type: symptom-based
-    owner: TODO_phân_công
+    owner: Đặng Thái Nam Sơn
     runbook: docs/alerts.md#alert-7
 
   - name: PIIInModelOutput
@@ -91,30 +91,5 @@ alerts:
     for: 0m
     min_sample: không áp dụng (một lần xuất hiện đã đủ để điều tra)
     type: symptom-based
-    owner: TODO_phân_công
+    owner: Đặng Thái Nam Sơn
     runbook: docs/alerts.md#alert-8
-
-# --- Alert đề xuất, CHƯA bật được ---
-# Hai alert dưới đây là best practice cho RAG/agent nhưng KHÔNG thể bắn với
-# instrumentation hiện tại: `prompt_source` và cờ retrieval-miss chỉ được gửi sang
-# Langfuse trong app/agent.py, chưa có trong data/logs.jsonl. Để ở block riêng để
-# không lẫn với alert đang chạy thật — một alert không bao giờ bắn được còn nguy
-# hiểm hơn là không có alert, vì nó tạo cảm giác an toàn giả.
-planned_alerts:
-  - name: PromptFallbackRate
-    severity: critical
-    sli: prompt_fallback_rate_pct
-    condition: 'count(prompt_source == "local-fallback") / count(event == "response_sent") * 100 > 1'
-    for: 5m
-    type: symptom-based
-    blocked_on: Thêm `prompt_source` + `prompt_fetch_error` vào log event response_sent
-    runbook: docs/alerts.md#alert-9
-
-  - name: RetrievalGroundingMiss
-    severity: warning
-    sli: retrieval_grounding_rate_pct
-    condition: 'count(retrieval_miss == true) / count(event == "response_sent") * 100 > 10'
-    for: 15m
-    type: symptom-based
-    blocked_on: Thêm cờ `retrieval_miss` (và `doc_count`) vào log event response_sent
-    runbook: docs/alerts.md#alert-10
