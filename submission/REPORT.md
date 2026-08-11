@@ -2,10 +2,10 @@
 
 ## 1. Thông tin nhóm
 
-- Tên nhóm:
+- Tên nhóm: 
 - Repository URL:
 - Commit SHA cuối:
-- Thành viên và vai trò:
+- Thành viên và vai trò: 
 
 ## 2. Kết quả kỹ thuật
 
