@@ -1,0 +1,84 @@
+# Prompt Versioning Evidence - Day 13 Observability Lab
+
+## Overview
+
+Prompt versioning được quản lý qua Langfuse với script: `scripts/role2_setup.py`
+
+## Prompt Configuration
+
+- **Prompt Name:** `day13-chat`
+- **Default Label:** `production` (configured via `LANGFUSE_PROMPT_LABEL` env var)
+
+## Version 1 (Baseline/Production)
+
+```python
+prompt_template_v1 = "Feature={{feature}}\nDocs={{docs}}\nQuestion={{message}}"
+labels = ["baseline", "production"]
+```
+
+### Characteristics:
+- Uses "Question={{message}}" template
+- Labels: baseline, production
+- This is the stable/production version
+
+## Version 2 (Candidate)
+
+```python
+prompt_template_v2 = "Feature={{feature}}\nDocs={{docs}}\nUser Question={{message}}"
+labels = ["candidate"]
+```
+
+### Characteristics:
+- Uses "User Question={{message}}" template (slightly modified)
+- Labels: candidate
+- This is the experimental/candidate version for testing
+
+## How to Create and Test Prompt Versions
+
+### Step 1: Run the setup script
+```bash
+python scripts/role2_setup.py
+```
+This creates both versions on Langfuse.
+
+### Step 2: Test with baseline label
+1. Set `LANGFUSE_PROMPT_LABEL=baseline` in `.env`
+2. Restart the API server
+3. Send a test request
+4. Record the Trace ID from Langfuse UI
+
+### Step 3: Test with candidate label
+1. Set `LANGFUSE_PROMPT_LABEL=candidate` in `.env`
+2. Restart the API server
+3. Send the same test request
+4. Record the Trace ID from Langfuse UI
+
+### Step 4: Change label (Promotion)
+1. Go to Langfuse UI → Prompts → `day13-chat`
+2. Move label "production" from Version 1 to Version 2
+3. Take a screenshot as evidence
+
+### Step 5: Rollback label
+1. Go to Langfuse UI → Prompts → `day13-chat`
+2. Move label "production" back to Version 1
+3. Take a screenshot as evidence
+
+## Trace Linking
+
+Each trace will have these metadata fields:
+- `prompt_name`: "day13-chat"
+- `prompt_label`: "baseline", "candidate", or "production"
+- `prompt_version`: Version number (e.g., "1", "2")
+
+## Evidence Checklist
+
+- [ ] Trace ID for Version 1 (baseline) - record from Langfuse
+- [ ] Trace ID for Version 2 (candidate) - record from Langfuse
+- [ ] Screenshot of label change/promotion on Langfuse UI
+- [ ] Screenshot of rollback on Langfuse UI
+
+## Code References
+
+- Setup script: `scripts/role2_setup.py`
+- Prompt resolution: `app/prompt_management.py`
+- Environment variables: `.env` (LANGFUSE_PROMPT_NAME, LANGFUSE_PROMPT_LABEL)

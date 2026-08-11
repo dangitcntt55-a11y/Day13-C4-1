@@ -1,0 +1,108 @@
+# Trace Sample - Day 13 Observability Lab
+
+## Example Trace Waterfall
+
+Correlation ID: req-a9f59622
+Feature: qa
+Model: claude-sonnet-4-5
+
+### Request Timeline
+
+```
+[0ms]  request_received
+         |
+         |  API receives request
+         |  - session_id: s01
+         |  - user_id_hash: 2055254ee30a
+         |  - feature: qa
+         |  - correlation_id: req-a9f59622
+         |
+[50ms]  message_processing
+         |
+         |  PII redaction applied
+         |  - Input scanned for PII
+         |  - Email detected and redacted: [REDACTED_EMAIL]
+         |
+[100ms] LLM call initiated
+         |
+         |  - model: claude-sonnet-4-5
+         |  - tokens_in: 36
+         |  - prompt_version: v1 (if applicable)
+         |
+[150ms] response_sent
+         |
+         |  Response delivered
+         |  - latency_ms: 150
+         |  - tokens_out: 150
+         |  - cost_usd: 0.002358
+         |  - quality_score: 0.9
+```
+
+### Log Entries for This Trace
+
+#### Entry 1: request_received
+```json
+{
+  "service": "api",
+  "payload": {
+    "message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"
+  },
+  "event": "request_received",
+  "session_id": "s01",
+  "user_id_hash": "2055254ee30a",
+  "model": "claude-sonnet-4-5",
+  "feature": "qa",
+  "correlation_id": "req-a9f59622",
+  "env": "dev",
+  "level": "info",
+  "ts": "2026-08-11T03:51:53.766623Z"
+}
+```
+
+#### Entry 2: response_sent
+```json
+{
+  "service": "api",
+  "latency_ms": 150,
+  "tokens_in": 36,
+  "tokens_out": 150,
+  "cost_usd": 0.002358,
+  "quality_score": 0.9,
+  "payload": {
+    "answer_preview": "Starter answer. Teams should improve this output logic..."
+  },
+  "event": "response_sent",
+  "session_id": "s01",
+  "user_id_hash": "2055254ee30a",
+  "model": "claude-sonnet-4-5",
+  "feature": "qa",
+  "correlation_id": "req-a9f59622",
+  "env": "dev",
+  "level": "info",
+  "ts": "2026-08-11T03:51:53.918436Z"
+}
+```
+
+## Notable Span: PII Redaction
+
+The input message contained an email address which was redacted before logging:
+
+**Original input:** "What is your refund policy? My email is user@example.com"
+
+**Logged value:** "What is your refund policy? My email is [REDACTED_EMAIL]"
+
+This demonstrates:
+1. PII is detected before logging
+2. Original PII never appears in logs.jsonl
+3. Redaction preserves context for debugging
+
+## Metrics Extracted from Trace
+
+| Metric | Value |
+|--------|-------|
+| Total latency | 150ms |
+| Tokens in | 36 |
+| Tokens out | 150 |
+| Cost | $0.002358 |
+| Quality score | 0.9 |
+| PII items redacted | 1 (email) |

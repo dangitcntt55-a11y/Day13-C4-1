@@ -1,0 +1,87 @@
+# Langfuse UI Screenshots - Required Evidence
+
+## Overview
+
+Các evidence dưới đây **CẦN CHỤP ẢNH TỪ LANGFUSE UI** vì tôi không thể truy cập trực tiếp vào Langfuse cloud của bạn.
+
+## 1. Screenshots cần chụp
+
+### 1.1. Trace với Version 1 (Baseline)
+1. Truy cập Langfuse Dashboard
+2. Filter traces by prompt_name = "day13-chat"
+3. Filter by label = "baseline" (hoặc version = 1)
+4. Chụp ảnh trace detail showing:
+   - Trace ID
+   - prompt_name: "day13-chat"
+   - prompt_label: "baseline" hoặc "production"
+   - prompt_version: "1"
+5. Lưu: `submission/evidence/trace_v1.png`
+
+### 1.2. Trace với Version 2 (Candidate)
+1. Filter traces by label = "candidate" (hoặc version = 2)
+2. Chụp ảnh trace detail showing:
+   - Trace ID
+   - prompt_name: "day13-chat"
+   - prompt_label: "candidate"
+   - prompt_version: "2"
+3. Lưu: `submission/evidence/trace_v2.png`
+
+### 1.3. Screenshot đổi Label (Promotion)
+1. Truy cập Langfuse → Prompts → day13-chat
+2. Chụp ảnh trước khi đổi: Version 1 có label "production"
+3. Di chuyển label "production" sang Version 2
+4. Chụp ảnh sau khi đổi: Version 2 có label "production"
+5. Lưu: `submission/evidence/label_promotion.png`
+
+### 1.4. Screenshot Rollback
+1. Trên Langfuse → Prompts → day13-chat
+2. Di chuyển label "production" về Version 1
+3. Chụp ảnh: Version 1 có label "production", Version 2 không có
+4. Lưu: `submission/evidence/label_rollback.png`
+
+## 2. Cách gửi request với label cụ thể
+
+### 2.1. Test với baseline/production label
+```bash
+# Set trong .env
+LANGFUSE_PROMPT_LABEL=baseline
+# hoặc
+LANGFUSE_PROMPT_LABEL=production
+
+# Restart API server
+uvicorn app.main:app --reload --env-file .env
+
+# Gửi request
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is your refund policy?", "session_id": "test", "user_id": "test-user"}'
+```
+
+### 2.2. Test với candidate label
+```bash
+# Set trong .env
+LANGFUSE_PROMPT_LABEL=candidate
+
+# Restart API server
+uvicorn app.main:app --reload --env-file .env
+
+# Gửi cùng request
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is your refund policy?", "session_id": "test", "user_id": "test-user"}'
+```
+
+## 3. Trace Waterfall Screenshot
+
+1. Trên Langfuse UI, click vào một trace
+2. Chuyển sang view "Waterfall"
+3. Chụp ảnh hiển thị các spans
+4. Lưu: `submission/evidence/trace_waterfall.png`
+
+## 4. Checklist trước khi nộp
+
+- [ ] trace_v1.png - Trace với Version 1
+- [ ] trace_v2.png - Trace với Version 2
+- [ ] label_promotion.png - Ảnh đổi label
+- [ ] label_rollback.png - Ảnh rollback
+- [ ] trace_waterfall.png - Trace waterfall view

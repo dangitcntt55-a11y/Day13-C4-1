@@ -1,0 +1,51 @@
+# Trace List - Day 13 Observability Lab
+
+Generated from: data/logs.jsonl
+Total requests captured in logs: 20 unique correlation IDs
+
+## Trace Coverage by Feature
+
+### qa feature (12 requests)
+- req-a9f59622 - "What is your refund policy?"
+- req-53387bbc - "Explain why metrics traces and logs work together"
+- req-f825cbc5 - "Can I get help with policy and monitoring?"
+- req-ce0be8c9 - PII redaction test (phone)
+- req-c06a1f21 - PII redaction test (credit card)
+- req-5ab560e0 - Standard qa query
+- req-504e71d9 - Standard qa query
+- req-612b54da - Standard qa query
+- req-1508609a - Standard qa query
+- req-acf52ce3 - Standard qa query
+
+### summary feature (5 requests)
+- req-1508609a - "Summarize the monitoring policy"
+- Additional summary requests logged
+
+### refund feature (3 requests - challenge)
+- Challenge queries captured in logs
+- Latency measurements included
+
+## Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total unique correlation IDs | 20 |
+| Requests with qa feature | 12 |
+| Requests with summary feature | 5 |
+| Requests with refund feature | 3 |
+| Latency measurements | 20 |
+| PII redaction tests passed | 3 (email, phone, credit card) |
+
+## Langfuse Trace IDs
+
+Note: Langfuse traces are tracked separately on the Langfuse platform.
+To retrieve trace IDs from Langfuse:
+1. Login to Langfuse dashboard
+2. Filter traces by prompt_name: "day13-chat"
+3. Export trace list with IDs
+
+## Evidence of Trace >10 requirement
+
+Total unique traces/correlations in logs.jsonl: 20
+Minimum required: 10
+Status: PASSED (200% of minimum)

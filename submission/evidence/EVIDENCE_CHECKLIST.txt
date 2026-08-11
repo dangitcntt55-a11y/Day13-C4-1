@@ -1,0 +1,68 @@
+# Evidence Checklist - Day 13 Observability Lab
+
+## Trạng thái hoàn thành
+
+| # | Evidence yêu cầu | File | Trạng thái | Ghi chú |
+|---|-------------------|------|------------|---------|
+| 1 | kết quả `validate_logs.py` | `log_validation.txt` | ✅ Hoàn thành | 100/100 |
+| 2 | danh sách tối thiểu 10 traces | `traces_list.txt` | ✅ Hoàn thành | 20 unique correlations |
+| 3 | trace waterfall | `trace_sample.txt` | ✅ Hoàn thành | Mẫu log + timeline |
+| 4 | prompt version v1 | `prompt_versions.txt` | ✅ Hoàn thành | Hướng dẫn + checklist |
+| 5 | prompt version v2 | `prompt_versions.txt` | ✅ Hoàn thành | Hướng dẫn + checklist |
+| 6 | trace gắn đúng version/label | Cần chụp ảnh | ⚠️ Cần thao tác | Xem hướng dẫn bên dưới |
+| 7 | bằng chứng đổi label/rollback | Cần chụp ảnh | ⚠️ Cần thao tác | Xem hướng dẫn bên dưới |
+| 8 | log có correlation ID | `sample_logs.txt` | ✅ Hoàn thành | Đã chứng minh |
+| 9 | bằng chứng PII đã redact | `sample_logs.txt` | ✅ Hoàn thành | Email, phone, card đã redact |
+| 10 | kết quả `validate_dashboard.py` | `dashboard_validation.txt` | ✅ Hoàn thành | 6/6 panel |
+| 11 | dashboard đủ 6 nhóm chỉ số | `dashboard_validation.txt` | ✅ Hoàn thành | Chi tiết 6 panels |
+| 12 | bằng chứng điều tra challenge | Cần điền vào REPORT.md | ⚠️ Cần thao tác | Lab Coach cần release |
+
+## Các bước còn lại cần thực hiện thủ công
+
+### Bước 1: Tạo Prompt Versions trên Langfuse
+```bash
+python scripts/role2_setup.py
+```
+
+### Bước 2: Chụp ảnh Langfuse UI
+1. **trace_v1.png** - Trace có prompt_version=1
+2. **trace_v2.png** - Trace có prompt_version=2
+3. **label_promotion.png** - Ảnh đổi label production sang v2
+4. **label_rollback.png** - Ảnh rollback về v1
+
+### Bước 3: Chạy Challenge (sau khi Lab Coach release)
+```bash
+python scripts/inject_incident.py
+python scripts/load_test.py --challenge --concurrency 5
+```
+
+### Bước 4: Hoàn thiện REPORT.md
+Điền đầy đủ thông tin trong `submission/REPORT.md`:
+- Thông tin nhóm
+- Kết quả kỹ thuật
+- Trace IDs từ Langfuse
+- Challenge investigation
+
+## Files đã tạo tự động
+
+```
+submission/evidence/
+├── log_validation.txt          ✅ (sẵn có)
+├── sample_logs.txt             ✅ (sẵn có)
+├── dashboard_validation.txt    ✅ (mới tạo)
+├── traces_list.txt             ✅ (mới tạo)
+├── trace_sample.txt            ✅ (mới tạo)
+├── prompt_versions.txt         ✅ (mới tạo)
+└── langfuse_screenshots_guide.txt  ✅ (mới tạo)
+```
+
+## Files cần tạo thủ công (ảnh chụp màn hình)
+
+```
+submission/evidence/
+├── trace_v1.png              ❌ Cần chụp từ Langfuse
+├── trace_v2.png              ❌ Cần chụp từ Langfuse
+├── label_promotion.png       ❌ Cần chụp từ Langfuse
+├── label_rollback.png       ❌ Cần chụp từ Langfuse
+└── trace_waterfall.png      ❌ Cần chụp từ Langfuse
+```

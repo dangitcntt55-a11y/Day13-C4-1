@@ -1,0 +1,92 @@
+# Dashboard Validation Results - Day 13 Observability Lab
+
+## Validation Command
+```bash
+python scripts/validate_dashboard.py
+```
+
+## Result
+```
+HỢP LỆ: 6/6 panel có trong dashboard contract.
+```
+
+## Dashboard Configuration Summary
+
+Source: config/dashboard.yaml
+Schema Version: 1
+Time Range: 60 minutes
+Refresh: 30 seconds
+
+### Panel 1: Latency
+- ID: latency
+- Title: Latency percentiles
+- Source: data/logs.jsonl
+- Events: response_sent
+- Fields: latency_ms
+- Aggregations: p50, p95, p99
+- Unit: ms
+- Threshold: p95 <= 3000ms
+
+### Panel 2: Traffic
+- ID: traffic
+- Title: Request traffic
+- Source: data/logs.jsonl
+- Events: request_received
+- Fields: event
+- Aggregations: count, rate_per_minute
+- Unit: requests_per_minute
+- Threshold: rate_per_minute >= 1
+
+### Panel 3: Errors
+- ID: errors
+- Title: Error rate and breakdown
+- Source: data/logs.jsonl
+- Events: request_received, request_failed
+- Fields: error_type
+- Aggregations: error_rate_pct, count_by_value
+- Unit: percent
+- Threshold: error_rate_pct <= 2%
+
+### Panel 4: Cost
+- ID: cost
+- Title: Cost over time
+- Source: data/logs.jsonl
+- Events: response_sent
+- Fields: cost_usd
+- Aggregations: sum_by_minute, total
+- Unit: usd
+- Threshold: total <= $2.50
+
+### Panel 5: Tokens
+- ID: tokens
+- Title: Input and output tokens
+- Source: data/logs.jsonl
+- Events: response_sent
+- Fields: tokens_in, tokens_out
+- Aggregations: sum_by_field
+- Unit: tokens
+- Threshold: sum_by_field <= 50000
+
+### Panel 6: Quality
+- ID: quality
+- Title: Quality proxy
+- Source: data/logs.jsonl
+- Events: response_sent
+- Fields: quality_score
+- Aggregations: mean
+- Unit: score_0_to_1
+- Threshold: mean >= 0.75
+
+## SLO Configuration
+
+Source: config/slo.yaml
+
+| SLI | Objective | Target |
+|-----|-----------|--------|
+| latency_p95_ms | 3000ms | 99.5% |
+| error_rate_pct | 2% | 99.0% |
+| daily_cost_usd | $2.50 | 100% |
+| quality_score_avg | 0.75 | 95.0% |
+
+## Status: VALIDATED
+All 6 required panels are present and correctly configured.
