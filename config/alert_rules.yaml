@@ -1,19 +1,30 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
+  - name: high_latency_p95
+    severity: warning
+    condition: "percentile(latency_ms, 95) > 3000 for 5m"
     type: symptom-based
-    owner: TODO
+    sli: latency_p95_ms
+    slo_threshold: 3000
+    unit: ms
+    owner: dashboard-slo-team
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
+
+  - name: high_error_rate
+    severity: critical
+    condition: "count(event == 'request_failed') / count(event == 'request_received') * 100 > 2 for 3m"
     type: symptom-based
-    owner: TODO
+    sli: error_rate_pct
+    slo_threshold: 2
+    unit: percent
+    owner: dashboard-slo-team
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
+
+  - name: low_quality_score
+    severity: warning
+    condition: "mean(quality_score) < 0.75 for 10m"
     type: symptom-based
-    owner: TODO
+    sli: quality_score_avg
+    slo_threshold: 0.75
+    unit: score_0_to_1
+    owner: dashboard-slo-team
     runbook: docs/alerts.md#alert-3
